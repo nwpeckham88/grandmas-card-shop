@@ -1,9 +1,11 @@
-<!-- Main card canvas that renders the greeting card with front/inside support -->
+<!-- Modern card canvas with view mode support and scaling -->
 <script>
   import { cancelStickerPlacement, cardState, clearSelection, currentSideData, placeStickerAt } from '$lib/stores/cardStore.js';
   import DraggableImage from '../elements/DraggableImage.svelte';
   import DraggableSticker from '../elements/DraggableSticker.svelte';
   import DraggableText from '../elements/DraggableText.svelte';
+  
+  let { viewMode = 'spread' } = $props();
   
   let canvasElement = $state();
   let mouseX = $state(0);
@@ -57,10 +59,13 @@
   // Check if current side is inside spread
   let isInsideSpread = $derived(currentSide === 'inside-left' || currentSide === 'inside-right');
   
+  // Determine if we should show spread view
+  let shouldShowSpread = $derived(isInsideSpread && viewMode === 'spread');
+  
   // Get companion side for spread view
   let companionSide = $derived(currentSide === 'inside-left' ? 'inside-right' : 
                     currentSide === 'inside-right' ? 'inside-left' : null);
-  let companionData = $derived(companionSide ? $cardState[companionSide] : null);
+  let companionData = $derived(companionSide && shouldShowSpread ? $cardState[companionSide] : null);
   
   // Convert companion elements to arrays
   let companionTextElements = $derived(() => {
@@ -91,7 +96,7 @@
       
       // Adjust coordinates for spread view
       let adjustedX = x;
-      if (isInsideSpread && currentSide === 'inside-right') {
+      if (shouldShowSpread && currentSide === 'inside-right') {
         // For inside-right in spread view, adjust X coordinate
         adjustedX = x - cardSize.width;
       }
@@ -131,24 +136,18 @@
 <svelte:window onkeydown={handleKeyDown} />
 
 <div class="card-editor-container">
-  <!-- Side indicator -->
-  <div class="side-indicator">
-    <div class="flex items-center gap-2">
-      <span class="text-lg">{getSideEmoji(currentSide)}</span>
-      <span class="font-medium text-gray-800">{getSideDisplayName(currentSide)}</span>
-      {#if isInsideSpread}
-        <span class="text-xs text-gray-500 ml-2">
-          {currentSide === 'inside-left' ? '(Left page of spread)' : '(Right page of spread)'}
-        </span>
-      {/if}
+  <!-- Minimal side indicator for single page view -->
+  {#if isInsideSpread && viewMode === 'single'}
+    <div class="text-center mb-4">
+      <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-lg">
+        <span class="text-lg">{getSideEmoji(currentSide)}</span>
+        <span class="font-medium text-blue-900">{getSideDisplayName(currentSide)} - Single Page View</span>
+      </div>
     </div>
-    <div class="text-sm text-gray-600 mt-1">
-      {cardSize.name} • {cardSize.width}×{cardSize.height}px
-    </div>
-  </div>
+  {/if}
   
   <!-- Show companion side indicator in spread view -->
-  {#if isInsideSpread && companionData}
+  {#if shouldShowSpread && companionData}
     <div class="flex items-center gap-2 text-sm text-gray-600">
       <span>Also editing:</span>
       <span class="text-lg">{getSideEmoji(companionSide)}</span>
@@ -169,7 +168,7 @@
     bind:this={canvasElement}
     class="card-canvas border-2 border-gray-300 relative mx-auto shadow-lg"
     class:placement-mode={placementMode}
-    style="width: {isInsideSpread ? cardSize.width * 2 : cardSize.width}px; height: {cardSize.height}px; background-color: {sideData.backgroundColor};"
+    style="width: {shouldShowSpread ? cardSize.width * 2 : cardSize.width}px; height: {cardSize.height}px; background-color: {sideData.backgroundColor};"
     data-side={currentSide}
     onclick={handleCanvasClick}
     onmousemove={handleCanvasMouseMove}
@@ -178,7 +177,7 @@
     tabindex="0"
   >
     <!-- Spread Divider Line -->
-    {#if isInsideSpread}
+    {#if shouldShowSpread}
       <div 
         class="absolute top-0 bottom-0 border-l-2 border-dashed border-gray-400 z-10"
         style="left: {cardSize.width}px;"
@@ -189,7 +188,7 @@
     <!-- Current Side Elements Container -->
     <div 
       class="absolute inset-0"
-      style="width: {cardSize.width}px; left: {currentSide === 'inside-right' && isInsideSpread ? cardSize.width + 'px' : '0px'};"
+      style="width: {cardSize.width}px; left: {currentSide === 'inside-right' && shouldShowSpread ? cardSize.width + 'px' : '0px'};"
     >
       <!-- Text elements -->
       {#each textElements as textElement (textElement.id)}
@@ -208,7 +207,7 @@
     </div>
 
     <!-- Companion Side Elements (for spread view preview) -->
-    {#if isInsideSpread && companionData}
+    {#if shouldShowSpread && companionData}
       <div 
         class="absolute inset-0 pointer-events-none opacity-50"
         style="width: {cardSize.width}px; left: {currentSide === 'inside-left' ? cardSize.width + 'px' : '0px'};"
