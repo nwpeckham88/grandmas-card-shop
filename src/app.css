@@ -1,0 +1,258 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Grandma-friendly custom styles for the card editor */
+.card-canvas {
+  position: relative;
+  background-color: white;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Make all buttons larger and more accessible for grandma */
+.btn-grandma {
+  @apply btn btn-lg;
+  min-height: 3.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+}
+
+.btn-grandma-xl {
+  @apply btn btn-xl;
+  min-height: 4rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 1rem 2rem;
+}
+
+/* Larger text for better readability */
+.text-grandma {
+  font-size: 1.125rem;
+  line-height: 1.75;
+}
+
+.text-grandma-lg {
+  font-size: 1.25rem;
+  line-height: 1.75;
+}
+
+.text-grandma-xl {
+  font-size: 1.5rem;
+  line-height: 1.75;
+}
+
+/* Draggable elements styling */
+.dragging {
+  cursor: grabbing !important;
+  z-index: 1000;
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.draggable-element {
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.draggable-element:hover {
+  outline: 3px dashed #6366f1;
+  outline-offset: 3px;
+  transform: scale(1.02);
+}
+
+.draggable-element.selected {
+  outline: 3px solid #6366f1;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.2);
+}
+
+.card-element {
+  position: absolute;
+  user-select: none;
+}
+
+/* Larger resize handles for easier use */
+.resize-handle {
+  position: absolute;
+  background: #6366f1;
+  border: 3px solid white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  cursor: se-resize;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.resize-handle.nw { top: -9px; left: -9px; cursor: nw-resize; }
+.resize-handle.ne { top: -9px; right: -9px; cursor: ne-resize; }
+.resize-handle.sw { bottom: -9px; left: -9px; cursor: sw-resize; }
+.resize-handle.se { bottom: -9px; right: -9px; cursor: se-resize; }
+
+/* Placement mode styling */
+.placement-mode {
+  cursor: crosshair;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.placement-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.placement-crosshair {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #3b82f6;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 
+    0 0 0 12px rgba(59, 130, 246, 0.15),
+    0 0 0 24px rgba(59, 130, 246, 0.08);
+}
+
+.placement-crosshair::before,
+.placement-crosshair::after {
+  content: '';
+  position: absolute;
+  background: #3b82f6;
+  opacity: 0.8;
+}
+
+.placement-crosshair::before {
+  width: 30px;
+  height: 2px;
+  left: -15px;
+  top: -1px;
+}
+
+.placement-crosshair::after {
+  width: 2px;
+  height: 30px;
+  left: -1px;
+  top: -15px;
+}
+
+/* Keyboard shortcuts styling */
+.kbd {
+  @apply kbd-lg;
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 2.5rem;
+  min-height: 2rem;
+}
+
+/* Modal improvements for grandma */
+.modal-box {
+  max-width: none;
+  width: 90vw;
+  max-height: 85vh;
+}
+
+/* Dropdown improvements */
+.dropdown-content {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Input improvements */
+.input, .select, .textarea {
+  font-size: 1.125rem;
+  min-height: 3rem;
+  border-width: 2px;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Card canvas improvements */
+.card-canvas:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Progress bar styling */
+.progress {
+  height: 1rem;
+  border-radius: 0.5rem;
+}
+
+/* Alert improvements */
+.alert {
+  font-size: 1.125rem;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+}
+
+/* Tooltip improvements */
+.tooltip {
+  font-size: 1rem;
+}
+
+/* Loading spinner improvements */
+.loading {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Color picker improvements */
+input[type="color"] {
+  width: 4rem;
+  height: 3rem;
+  border-radius: 0.5rem;
+  border: 2px solid #e5e7eb;
+  cursor: pointer;
+}
+
+input[type="color"]:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Range slider improvements */
+input[type="range"] {
+  height: 0.75rem;
+  border-radius: 0.375rem;
+}
+
+/* Improved focus styles for accessibility */
+*:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+button:focus, .btn:focus {
+  outline: 3px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn {
+    border-width: 2px;
+  }
+  
+  .draggable-element:hover,
+  .draggable-element.selected {
+    outline-width: 4px;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .draggable-element,
+  .card-canvas,
+  .btn,
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+} 
