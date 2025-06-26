@@ -5,17 +5,17 @@
   import DraggableSticker from '../elements/DraggableSticker.svelte';
   import DraggableText from '../elements/DraggableText.svelte';
   
-  let canvasElement;
-  let mouseX = 0;
-  let mouseY = 0;
-  let showPreview = false;
+  let canvasElement = $state();
+  let mouseX = $state(0);
+  let mouseY = $state(0);
+  let showPreview = $state(false);
   
   // Reactive declarations for current card state
-  $: cardSize = $cardState.cardSize;
-  $: currentSide = $cardState.currentSide;
-  $: sideData = $currentSideData;
-  $: selectedSticker = $cardState.selectedSticker;
-  $: placementMode = $cardState.placementMode;
+  let cardSize = $derived($cardState.cardSize);
+  let currentSide = $derived($cardState.currentSide);
+  let sideData = $derived($currentSideData);
+  let selectedSticker = $derived($cardState.selectedSticker);
+  let placementMode = $derived($cardState.placementMode);
   
   // Get side display information
   function getSideDisplayName(side) {
@@ -39,12 +39,12 @@
   }
 
   // Check if current side is inside spread
-  $: isInsideSpread = currentSide === 'inside-left' || currentSide === 'inside-right';
+  let isInsideSpread = $derived(currentSide === 'inside-left' || currentSide === 'inside-right');
   
   // Get companion side for spread view
-  $: companionSide = currentSide === 'inside-left' ? 'inside-right' : 
-                    currentSide === 'inside-right' ? 'inside-left' : null;
-  $: companionData = companionSide ? $cardState[companionSide] : null;
+  let companionSide = $derived(currentSide === 'inside-left' ? 'inside-right' : 
+                    currentSide === 'inside-right' ? 'inside-left' : null);
+  let companionData = $derived(companionSide ? $cardState[companionSide] : null);
   
   export function getCanvasElement() {
     return canvasElement;
@@ -96,7 +96,7 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeyDown} />
+<svelte:window onkeydown={handleKeyDown} />
 
 <div class="card-editor-container">
   <!-- Side indicator -->
@@ -139,9 +139,9 @@
     class:placement-mode={placementMode}
     style="width: {isInsideSpread ? cardSize.width * 2 : cardSize.width}px; height: {cardSize.height}px; background-color: {sideData.backgroundColor};"
     data-side={currentSide}
-    on:click={handleCanvasClick}
-    on:mousemove={handleCanvasMouseMove}
-    on:mouseleave={handleCanvasMouseLeave}
+    onclick={handleCanvasClick}
+    onmousemove={handleCanvasMouseMove}
+    onmouseleave={handleCanvasMouseLeave}
     role="button"
     tabindex="0"
   >

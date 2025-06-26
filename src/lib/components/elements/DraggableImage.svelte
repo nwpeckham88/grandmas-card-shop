@@ -2,10 +2,10 @@
 <script>
   import { cardState, selectElement, updateElement } from '$lib/stores/cardStore.js';
   
-  export let imageElement;
+  let { imageElement } = $props();
   
-  let isDragging = false;
-  let isResizing = false;
+  let isDragging = $state(false);
+  let isResizing = $state(false);
   let dragStartX = 0;
   let dragStartY = 0;
   let elementStartX = 0;
@@ -14,7 +14,7 @@
   let resizeStartHeight = 0;
   
   // Check if this element is selected
-  $: isSelected = $cardState.selectedElements.includes(`imageElements:${imageElement.id}`);
+  let isSelected = $derived($cardState.selectedElements.includes(`imageElements:${imageElement.id}`));
   
   function handleMouseDown(event) {
     if (event.target.classList.contains('resize-handle')) {
@@ -104,8 +104,8 @@
   class:resizing={isResizing}
   class:selected={isSelected}
   style="left: {imageElement.x}px; top: {imageElement.y}px; z-index: {isDragging || isResizing ? 1000 : isSelected ? 100 : 1};"
-  on:mousedown={handleMouseDown}
-  on:click={handleClick}
+  onmousedown={handleMouseDown}
+  onclick={handleClick}
   role="button"
   tabindex="0"
 >
@@ -123,25 +123,25 @@
       <!-- Corner resize handles -->
       <div 
         class="resize-handle corner-handle top-left"
-        on:mousedown={handleResizeStart}
+        onmousedown={handleResizeStart}
         role="button"
         tabindex="0"
       ></div>
       <div 
         class="resize-handle corner-handle top-right"
-        on:mousedown={handleResizeStart}
+        onmousedown={handleResizeStart}
         role="button"
         tabindex="0"
       ></div>
       <div 
         class="resize-handle corner-handle bottom-left"
-        on:mousedown={handleResizeStart}
+        onmousedown={handleResizeStart}
         role="button"
         tabindex="0"
       ></div>
       <div 
         class="resize-handle corner-handle bottom-right"
-        on:mousedown={handleResizeStart}
+        onmousedown={handleResizeStart}
         role="button"
         tabindex="0"
       ></div>

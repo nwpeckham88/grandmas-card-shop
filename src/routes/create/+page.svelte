@@ -20,20 +20,20 @@
   import { onMount } from 'svelte';
 
   // Reactive state
-  $: currentSide = $cardState.currentSide;
-  $: cardSize = $cardState.cardSize;
-  $: sideData = $cardState[currentSide];
-  $: history = $cardHistory;
-  $: selectedElements = $cardState.selectedElements;
-  $: totalElements = CARD_SIDES.reduce((total, side) => {
+  let currentSide = $derived($cardState.currentSide);
+  let cardSize = $derived($cardState.cardSize);
+  let sideData = $derived($cardState[currentSide]);
+  let history = $derived($cardHistory);
+  let selectedElements = $derived($cardState.selectedElements);
+  let totalElements = $derived(CARD_SIDES.reduce((total, side) => {
     const data = $cardState[side];
     return total + Object.keys(data.elements || {}).length;
-  }, 0);
+  }, 0));
 
   // Calculate completion percentage
-  $: completionPercentage = Math.min(100, Math.round((totalElements / 8) * 100));
+  let completionPercentage = $derived(Math.min(100, Math.round((totalElements / 8) * 100)));
 
-  let showHelpModal = false;
+  let showHelpModal = $state(false);
 
   // Keyboard shortcuts
   function handleKeydown(event) {
@@ -171,7 +171,7 @@
           <!-- Help Button -->
           <button 
             class="btn btn-lg btn-primary" 
-            on:click={() => showHelpModal = true}
+            onclick={() => showHelpModal = true}
           >
             ❓ Help
           </button>
@@ -294,7 +294,7 @@
                 class:bg-purple-50={currentSide === side}
                 class:border-gray-200={currentSide !== side}
                 class:bg-gray-50={currentSide !== side}
-                on:click={() => switchToSide(side)}
+                onclick={() => switchToSide(side)}
                 role="button"
                 tabindex="0"
               >
@@ -360,7 +360,7 @@
         <h2 class="text-3xl font-bold text-gray-900">❓ Help & Guide</h2>
         <button 
           class="btn btn-lg btn-circle btn-ghost"
-          on:click={() => showHelpModal = false}
+          onclick={() => showHelpModal = false}
         >
           ✕
         </button>
@@ -502,7 +502,7 @@
       </div>
       
       <div class="modal-action">
-        <button class="btn btn-lg btn-primary" on:click={() => showHelpModal = false}>
+        <button class="btn btn-lg btn-primary" onclick={() => showHelpModal = false}>
           Got it! Let's Create
         </button>
       </div>

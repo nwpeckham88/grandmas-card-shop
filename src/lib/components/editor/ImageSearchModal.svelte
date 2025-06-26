@@ -2,12 +2,18 @@
 <script>
   import { addImageElement } from '$lib/stores/cardStore.js';
   
-  export let isOpen = false;
+  /**
+   * @typedef {Object} Props
+   * @property {boolean} [isOpen]
+   */
+
+  /** @type {Props} */
+  let { isOpen = $bindable(false) } = $props();
   
-  let searchQuery = '';
-  let searchResults = [];
-  let isSearching = false;
-  let searchError = '';
+  let searchQuery = $state('');
+  let searchResults = $state([]);
+  let isSearching = $state(false);
+  let searchError = $state('');
   
   async function handleSearch() {
     if (!searchQuery.trim()) return;
@@ -62,7 +68,7 @@
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-bold">Search Images</h2>
         <button 
-          on:click={closeModal}
+          onclick={closeModal}
           class="btn btn-sm btn-circle btn-ghost"
         >
           ✕
@@ -73,14 +79,14 @@
       <div class="flex gap-2 mb-4">
         <input
           bind:value={searchQuery}
-          on:keydown={handleKeydown}
+          onkeydown={handleKeydown}
           type="text"
           placeholder="Search for images (e.g., 'flowers', 'birthday', 'celebration')"
           class="input input-bordered flex-1"
           disabled={isSearching}
         />
         <button
-          on:click={handleSearch}
+          onclick={handleSearch}
           class="btn btn-primary"
           disabled={isSearching || !searchQuery.trim()}
         >
@@ -112,7 +118,7 @@
                   src={photo.src.medium}
                   alt={photo.alt || 'Search result'}
                   class="w-full h-32 object-cover"
-                  on:click={() => handleSelectImage(photo.src.large)}
+                  onclick={() => handleSelectImage(photo.src.large)}
                   loading="lazy"
                 />
               </figure>
@@ -121,7 +127,7 @@
                   Photo by {photo.photographer}
                 </p>
                 <button
-                  on:click={() => handleSelectImage(photo.src.large)}
+                  onclick={() => handleSelectImage(photo.src.large)}
                   class="btn btn-primary btn-xs"
                 >
                   Add to Card
@@ -154,6 +160,6 @@
     </div>
     
     <!-- Click outside to close -->
-    <div class="modal-backdrop" on:click={closeModal}></div>
+    <div class="modal-backdrop" onclick={closeModal}></div>
   </div>
 {/if} 

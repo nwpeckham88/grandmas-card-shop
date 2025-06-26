@@ -29,14 +29,14 @@
   const dispatch = createEventDispatcher();
 
   // Reactive state
-  $: currentSide = $cardState.currentSide;
-  $: selectedElements = $cardState.selectedElements;
-  $: hasSelection = selectedElements.length > 0;
-  $: hasTextSelection = selectedElements.some(id => $cardState[currentSide].elements[id]?.type === 'text');
-  $: canUndo = $cardHistory.past.length > 0;
-  $: canRedo = $cardHistory.future.length > 0;
-  $: placementMode = $cardState.placementMode;
-  $: selectedSticker = $cardState.selectedSticker;
+  let currentSide = $derived($cardState.currentSide);
+  let selectedElements = $derived($cardState.selectedElements);
+  let hasSelection = $derived(selectedElements.length > 0);
+  let hasTextSelection = $derived(selectedElements.some(id => $cardState[currentSide].elements[id]?.type === 'text'));
+  let canUndo = $derived($cardHistory.past.length > 0);
+  let canRedo = $derived($cardHistory.future.length > 0);
+  let placementMode = $derived($cardState.placementMode);
+  let selectedSticker = $derived($cardState.selectedSticker);
 
   // Sticker categories and options
   const stickerCategories = {
@@ -48,8 +48,8 @@
   };
 
   // UI state
-  let showImageSearch = false;
-  let showHelp = false;
+  let showImageSearch = $state(false);
+  let showHelp = $state(false);
 
   // Card side display names
   const sideDisplayNames = {
@@ -138,7 +138,7 @@
       <button 
         class="btn btn-primary btn-grandma tooltip tooltip-bottom" 
         class:btn-disabled={!canUndo}
-        on:click={handleUndo}
+        onclick={handleUndo}
         data-tip="Undo (Ctrl+Z)"
       >
         <span class="text-xl">↶</span>
@@ -147,7 +147,7 @@
       <button 
         class="btn btn-primary btn-grandma tooltip tooltip-bottom" 
         class:btn-disabled={!canRedo}
-        on:click={handleRedo}
+        onclick={handleRedo}
         data-tip="Redo (Ctrl+Y)"
       >
         <span class="text-xl">↷</span>
@@ -162,7 +162,7 @@
     <div class="flex gap-2">
       <button 
         class="btn btn-success btn-grandma-xl tooltip tooltip-bottom" 
-        on:click={handleAddText}
+        onclick={handleAddText}
         data-tip="Add Text (Ctrl+T)"
       >
         <span class="text-2xl">📝</span>
@@ -170,7 +170,7 @@
       </button>
       <button 
         class="btn btn-info btn-grandma-xl tooltip tooltip-bottom" 
-        on:click={handleImageSearch}
+        onclick={handleImageSearch}
         data-tip="Add Picture"
       >
         <span class="text-2xl">🖼️</span>
@@ -185,7 +185,7 @@
     <div class="flex gap-2">
       <button 
         class="btn btn-warning btn-grandma tooltip tooltip-bottom" 
-        on:click={handleClearCard}
+        onclick={handleClearCard}
         data-tip="Clear this side"
       >
         <span class="text-xl">🗑️</span>
@@ -193,7 +193,7 @@
       </button>
       <button 
         class="btn btn-accent btn-grandma tooltip tooltip-bottom" 
-        on:click={handleExportCard}
+        onclick={handleExportCard}
         data-tip="Save card as image"
       >
         <span class="text-xl">💾</span>
@@ -217,7 +217,7 @@
               <li>
                 <button 
                   class="text-grandma p-3 hover:bg-primary hover:text-primary-content rounded-lg"
-                  on:click={() => insertGreeting(phrase)}
+                  onclick={() => insertGreeting(phrase)}
                 >
                   {phrase}
                 </button>
@@ -246,7 +246,7 @@
                   class="btn btn-ghost btn-square btn-lg text-3xl hover:bg-primary hover:scale-110 transition-all"
                   class:bg-primary={selectedSticker === sticker}
                   class:text-primary-content={selectedSticker === sticker}
-                  on:click={() => handleStickerSelect(sticker)}
+                  onclick={() => handleStickerSelect(sticker)}
                   title="Click to select, then click on card to place"
                 >
                   {sticker}
@@ -265,7 +265,7 @@
           <strong>Click on the card to place your sticker!</strong>
           <br>Press Escape to cancel
         </div>
-        <button class="btn btn-sm btn-ghost" on:click={cancelStickerPlacement}>Cancel</button>
+        <button class="btn btn-sm btn-ghost" onclick={cancelStickerPlacement}>Cancel</button>
       </div>
     {/if}
   </div>
@@ -279,7 +279,7 @@
           class="btn btn-grandma"
           class:btn-primary={currentSide === side}
           class:btn-outline={currentSide !== side}
-          on:click={() => handleSideSwitch(side)}
+          onclick={() => handleSideSwitch(side)}
         >
           <span class="text-grandma">{sideDisplayNames[side]}</span>
         </button>
@@ -294,15 +294,15 @@
       
       <!-- Copy/Paste/Delete -->
       <div class="flex gap-2 justify-center mb-4">
-        <button class="btn btn-primary btn-grandma" on:click={handleCopy}>
+        <button class="btn btn-primary btn-grandma" onclick={handleCopy}>
           <span class="text-xl">📋</span>
           <span class="text-grandma">Copy</span>
         </button>
-        <button class="btn btn-primary btn-grandma" on:click={handlePaste}>
+        <button class="btn btn-primary btn-grandma" onclick={handlePaste}>
           <span class="text-xl">📄</span>
           <span class="text-grandma">Paste</span>
         </button>
-        <button class="btn btn-error btn-grandma" on:click={handleDelete}>
+        <button class="btn btn-error btn-grandma" onclick={handleDelete}>
           <span class="text-xl">🗑️</span>
           <span class="text-grandma">Delete</span>
         </button>
@@ -310,17 +310,17 @@
 
       <!-- Alignment Tools -->
       <div class="flex gap-2 justify-center mb-4">
-        <button class="btn btn-outline btn-sm" on:click={() => alignElements('left')}>↤ Left</button>
-        <button class="btn btn-outline btn-sm" on:click={() => alignElements('center')}>↕ Center</button>
-        <button class="btn btn-outline btn-sm" on:click={() => alignElements('right')}>↦ Right</button>
-        <button class="btn btn-outline btn-sm" on:click={() => alignElements('top')}>↥ Top</button>
-        <button class="btn btn-outline btn-sm" on:click={() => alignElements('bottom')}>↧ Bottom</button>
+        <button class="btn btn-outline btn-sm" onclick={() => alignElements('left')}>↤ Left</button>
+        <button class="btn btn-outline btn-sm" onclick={() => alignElements('center')}>↕ Center</button>
+        <button class="btn btn-outline btn-sm" onclick={() => alignElements('right')}>↦ Right</button>
+        <button class="btn btn-outline btn-sm" onclick={() => alignElements('top')}>↥ Top</button>
+        <button class="btn btn-outline btn-sm" onclick={() => alignElements('bottom')}>↧ Bottom</button>
       </div>
 
       <!-- Layer Tools -->
       <div class="flex gap-2 justify-center">
-        <button class="btn btn-outline btn-sm" on:click={bringToFront}>↑ Front</button>
-        <button class="btn btn-outline btn-sm" on:click={sendToBack}>↓ Back</button>
+        <button class="btn btn-outline btn-sm" onclick={bringToFront}>↑ Front</button>
+        <button class="btn btn-outline btn-sm" onclick={sendToBack}>↓ Back</button>
       </div>
 
       <!-- Text Formatting (only for text elements) -->
@@ -337,7 +337,7 @@
               min="12" 
               max="72" 
               step="2"
-              on:input={(e) => applyTextFormat('fontSize', e.target.value + 'px')}
+              oninput={(e) => applyTextFormat('fontSize', e.target.value + 'px')}
             >
           </div>
 
@@ -346,7 +346,7 @@
             <span class="text-grandma">Font:</span>
             <select 
               class="select select-primary select-sm flex-1"
-              on:change={(e) => applyTextFormat('fontFamily', e.target.value)}
+              onchange={(e) => applyTextFormat('fontFamily', e.target.value)}
             >
               {#each FONT_FAMILIES as font}
                 <option value={font.value}>{font.name}</option>
@@ -360,7 +360,7 @@
             <input 
               type="color" 
               class="w-16 h-8 rounded border-2"
-              on:change={(e) => applyTextFormat('color', e.target.value)}
+              onchange={(e) => applyTextFormat('color', e.target.value)}
             >
           </div>
         </div>
@@ -372,7 +372,7 @@
   <div class="text-center">
     <button 
       class="btn btn-ghost btn-grandma tooltip tooltip-top" 
-      on:click={() => showHelp = true}
+      onclick={() => showHelp = true}
       data-tip="Get help (F1)"
     >
       <span class="text-xl">❓</span>
@@ -434,7 +434,7 @@
       </div>
 
       <div class="modal-action">
-        <button class="btn btn-primary btn-grandma" on:click={() => showHelp = false}>
+        <button class="btn btn-primary btn-grandma" onclick={() => showHelp = false}>
           <span class="text-grandma">Got it!</span>
         </button>
       </div>

@@ -58,7 +58,7 @@
         <!-- Call to Action -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <button
-            on:click={startCreating}
+            onclick={startCreating}
             class="btn btn-primary btn-lg"
           >
             <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

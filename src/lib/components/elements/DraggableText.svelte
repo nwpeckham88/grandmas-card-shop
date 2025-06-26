@@ -2,18 +2,18 @@
 <script>
   import { cardState, selectElement, updateElement } from '$lib/stores/cardStore.js';
   
-  export let textElement;
+  let { textElement } = $props();
   
-  let isDragging = false;
-  let isEditing = false;
+  let isDragging = $state(false);
+  let isEditing = $state(false);
   let dragStartX = 0;
   let dragStartY = 0;
   let elementStartX = 0;
   let elementStartY = 0;
-  let textInput;
+  let textInput = $state();
   
   // Check if this element is selected
-  $: isSelected = $cardState.selectedElements.includes(`textElements:${textElement.id}`);
+  let isSelected = $derived($cardState.selectedElements.includes(`textElements:${textElement.id}`));
   
   function handleMouseDown(event) {
     // Handle multi-selection with Ctrl/Cmd key
@@ -101,9 +101,9 @@
   class:selected={isSelected}
   class:editing={isEditing}
   style="left: {textElement.x}px; top: {textElement.y}px; z-index: {isDragging ? 1000 : isSelected ? 100 : 1};"
-  on:mousedown={handleMouseDown}
-  on:dblclick={handleDoubleClick}
-  on:click={handleClick}
+  onmousedown={handleMouseDown}
+  ondblclick={handleDoubleClick}
+  onclick={handleClick}
   role="button"
   tabindex="0"
 >
@@ -112,9 +112,9 @@
       bind:this={textInput}
       type="text"
       value={textElement.content}
-      on:blur={handleInputBlur}
-      on:keydown={handleKeyDown}
-      on:input={handleInput}
+      onblur={handleInputBlur}
+      onkeydown={handleKeyDown}
+      oninput={handleInput}
       class="text-input bg-transparent border-none outline-none resize-none"
       style="font-size: {textElement.fontSize}px; color: {textElement.color}; font-family: {textElement.fontFamily}; font-weight: {textElement.fontWeight}; text-align: {textElement.textAlign}; min-width: 100px;"
     />

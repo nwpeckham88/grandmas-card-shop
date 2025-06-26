@@ -18,7 +18,7 @@
   "license": "ISC",
   "devDependencies": {
     "@sveltejs/adapter-auto": "^3.0.0",
-    "@sveltejs/kit": "^2.0.0",
+    "@sveltejs/kit": "^2.5.27",
     "@tailwindcss/vite": "^4.1.10",
     "daisyui": "^5.0.43",
     "vite": "^6.0.0"
