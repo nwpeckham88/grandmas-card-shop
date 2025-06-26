@@ -4,6 +4,8 @@
   
   let { textElement } = $props();
   
+  console.log('DraggableText component created with element:', textElement);
+  
   let isEditing = $state(false);
   let element = $state();
   let isDragging = $state(false);

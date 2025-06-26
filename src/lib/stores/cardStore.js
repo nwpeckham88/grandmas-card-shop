@@ -103,23 +103,7 @@ const initialCardState = {
   },
   back: {
     backgroundColor: '#ffffff',
-    elements: {
-      'signature-text': {
-        id: 'signature-text',
-        type: 'text',
-        x: 20,
-        y: 750, // Near bottom for 5.5 x 11 card
-        width: 488, // Full width minus margins
-        height: 30,
-        content: 'Designed in Grandma\'s Card Shop',
-        fontSize: '14px',
-        fontFamily: 'Georgia',
-        color: '#666666',
-        textAlign: 'center',
-        fontWeight: 'normal',
-        zIndex: 1
-      }
-    }
+    elements: {}
   }
 };
 
@@ -573,9 +557,12 @@ export function cancelStickerPlacement() {
 
 // Helper functions for managing elements (updated to work with all sides)
 export function addTextElement(content = 'Double-click to edit', side = null) {
+  console.log('addTextElement function called with:', { content, side });
   saveToHistory();
   cardState.update(state => {
+    console.log('Current state before update:', state);
     const targetSide = side || state.currentSide;
+    console.log('Target side:', targetSide);
     
     // Snap to grid if enabled
     const snappedX = snapToGrid(100, state.gridSize, state.snapToGrid);
@@ -587,7 +574,7 @@ export function addTextElement(content = 'Double-click to edit', side = null) {
       content,
       x: snappedX,
       y: snappedY,
-      fontSize: 24,
+      fontSize: '24px',
       color: '#000000',
       fontFamily: 'Arial, sans-serif',
       fontWeight: 'normal',
@@ -595,7 +582,9 @@ export function addTextElement(content = 'Double-click to edit', side = null) {
       zIndex: 0
     };
     
-    return {
+    console.log('New element created:', newElement);
+    
+    const updatedState = {
       ...state,
       [targetSide]: {
         ...state[targetSide],
@@ -605,6 +594,11 @@ export function addTextElement(content = 'Double-click to edit', side = null) {
         }
       }
     };
+    
+    console.log('Updated state:', updatedState);
+    console.log('Elements in target side:', updatedState[targetSide].elements);
+    
+    return updatedState;
   });
 }
 

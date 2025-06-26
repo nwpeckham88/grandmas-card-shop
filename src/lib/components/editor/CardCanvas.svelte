@@ -1,6 +1,6 @@
 <!-- Modern card canvas with view mode support and scaling -->
 <script>
-  import { cancelStickerPlacement, cardState, clearSelection, currentSideData, placeStickerAt } from '$lib/stores/cardStore.js';
+  import { cancelStickerPlacement, cardState, clearSelection, placeStickerAt } from '$lib/stores/cardStore.js';
   import DraggableImage from '../elements/DraggableImage.svelte';
   import DraggableSticker from '../elements/DraggableSticker.svelte';
   import DraggableText from '../elements/DraggableText.svelte';
@@ -12,27 +12,27 @@
   let mouseY = $state(0);
   let showPreview = $state(false);
   
-  // Reactive declarations for current card state
+  // Reactive declarations for current card state - FIXED: Proper Svelte 5 reactivity
   let cardSize = $derived($cardState.cardSize);
   let currentSide = $derived($cardState.currentSide);
-  let sideData = $derived($currentSideData);
+  let sideData = $derived($cardState[currentSide]);
   let selectedSticker = $derived($cardState.selectedSticker);
   let placementMode = $derived($cardState.placementMode);
   
-  // Convert elements object to arrays based on element type
-  let textElements = $derived(() => {
-    if (!sideData?.elements) return [];
-    return Object.values(sideData.elements).filter(el => el.type === 'text');
+  // Debug log for store changes
+  $effect(() => {
+    console.log('CardCanvas - Store changed. Current side:', currentSide, 'Side data:', sideData);
   });
   
-  let imageElements = $derived(() => {
-    if (!sideData?.elements) return [];
-    return Object.values(sideData.elements).filter(el => el.type === 'image');
-  });
+  // Convert elements object to arrays based on element type - FIXED: Direct derived access
+  let textElements = $derived(sideData?.elements ? Object.values(sideData.elements).filter(el => el.type === 'text') : []);
+  let imageElements = $derived(sideData?.elements ? Object.values(sideData.elements).filter(el => el.type === 'image') : []);
+  let stickerElements = $derived(sideData?.elements ? Object.values(sideData.elements).filter(el => el.type === 'sticker') : []);
   
-  let stickerElements = $derived(() => {
-    if (!sideData?.elements) return [];
-    return Object.values(sideData.elements).filter(el => el.type === 'sticker');
+  // Debug effect for elements
+  $effect(() => {
+    console.log('Elements updated - Text:', textElements.length, 'Images:', imageElements.length, 'Stickers:', stickerElements.length);
+    console.log('Text elements:', textElements);
   });
   
   // Get side display information
@@ -192,17 +192,26 @@
     >
       <!-- Text elements -->
       {#each textElements as textElement (textElement.id)}
-        <DraggableText textElement={textElement} />
+        <!-- Rendering text element: {textElement.id} -->
+        <DraggableText {textElement} />
       {/each}
+      
+      <!-- Debug info -->
+      <div class="absolute top-0 left-0 bg-yellow-200 p-2 text-xs z-50">
+        Side: {currentSide} | 
+        Text: {textElements.length} | 
+        Images: {imageElements.length} | 
+        Stickers: {stickerElements.length}
+      </div>
       
       <!-- Image elements -->
       {#each imageElements as imageElement (imageElement.id)}
-        <DraggableImage imageElement={imageElement} />
+        <DraggableImage {imageElement} />
       {/each}
       
       <!-- Sticker elements -->
       {#each stickerElements as stickerElement (stickerElement.id)}
-        <DraggableSticker stickerElement={stickerElement} />
+        <DraggableSticker {stickerElement} />
       {/each}
     </div>
 
@@ -324,11 +333,6 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-  }
-  
-  .side-indicator {
-    text-align: center;
-    margin-bottom: 0.5rem;
   }
   
   .card-canvas {

@@ -41,7 +41,7 @@
   let placementMode = $derived($cardState.placementMode);
   
   // New view mode state
-  let viewMode = $state('spread'); // 'spread' or 'single'
+  let viewMode = $state('single'); // 'spread' or 'single' - default to single for better editing
   let showImageSearch = $state(false);
   let showHelpModal = $state(false);
 
@@ -208,7 +208,11 @@
 
         <!-- Add Content -->
         <div class="flex gap-2">
-          <button class="btn btn-success" onclick={() => addTextElement('Click to edit')} title="Add Text (Ctrl+T)">
+          <button class="btn btn-success" onclick={() => {
+            console.log('Add Text button clicked');
+            addTextElement('Click to edit');
+            console.log('addTextElement called');
+          }} title="Add Text (Ctrl+T)">
             📝 Add Text
           </button>
           <button class="btn btn-info" onclick={() => showImageSearch = true} title="Add Picture">
@@ -218,9 +222,9 @@
 
         <div class="divider divider-horizontal"></div>
 
-        <!-- View Mode Toggle for Inside Spread -->
-        {#if isInsideSpread()}
-          <div class="flex gap-2">
+        <!-- View Mode Toggle for Inside Spread - Always reserve space to prevent layout shift -->
+        <div class="flex gap-2 min-w-[280px]">
+          {#if isInsideSpread()}
             <button 
               class="btn" 
               class:btn-primary={viewMode === 'spread'}
@@ -239,8 +243,14 @@
             >
               📄 Single Page
             </button>
-          </div>
-        {/if}
+          {:else}
+            <!-- Invisible placeholder buttons to maintain layout -->
+            <div class="invisible">
+              <button class="btn">📖 Spread View</button>
+              <button class="btn">📄 Single Page</button>
+            </div>
+          {/if}
+        </div>
       </div>
 
       <!-- Right: Utility Actions -->
@@ -354,7 +364,7 @@
 
     <!-- Center: Canvas Area -->
     <div class="flex-1 flex items-center justify-center p-8 overflow-auto">
-      <div class="bg-white rounded-2xl shadow-xl p-8" class:scale-75={isInsideSpread() && viewMode === 'spread'}>
+      <div class="bg-white rounded-2xl shadow-xl p-8">
         <CardCanvas {viewMode} />
       </div>
     </div>
