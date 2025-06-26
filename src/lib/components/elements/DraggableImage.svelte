@@ -1,6 +1,6 @@
 <!-- Draggable image element with resize handles and selection support -->
 <script>
-  import { cardState, selectElement, updateElement } from '$lib/stores/cardStore.js';
+  import { cardState, recordInteraction, selectElement, updateElement } from '$lib/stores/cardStore.js';
   
   let { imageElement } = $props();
   
@@ -59,6 +59,7 @@
     isResizing = false;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+    recordInteraction();
   }
   
   function handleResizeStart(event) {

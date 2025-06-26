@@ -1,6 +1,6 @@
 <!-- Draggable text element with inline editing functionality and selection support -->
 <script>
-  import { cardState, selectElement, updateElement } from '$lib/stores/cardStore.js';
+  import { cardState, recordInteraction, selectElement, updateElement } from '$lib/stores/cardStore.js';
   
   let { textElement } = $props();
   
@@ -51,6 +51,7 @@
     isDragging = false;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+    recordInteraction();
   }
   
   function handleDoubleClick() {
@@ -59,6 +60,7 @@
   
   function handleBlur(event) {
     isEditing = false;
+    recordInteraction();
   }
   
   function handleKeyDown(event) {
@@ -101,12 +103,12 @@
       onblur={handleBlur}
       onkeydown={handleKeyDown}
       class="text-input bg-transparent border-none outline-none resize-none"
-      style="font-size: {textElement.fontSize}px; color: {textElement.color}; font-family: {textElement.fontFamily}; font-weight: {textElement.fontWeight}; text-align: {textElement.textAlign}; min-width: 100px;"
+      style="font-size: {textElement.fontSize}; color: {textElement.color}; font-family: {textElement.fontFamily}; font-weight: {textElement.fontWeight}; text-align: {textElement.textAlign}; min-width: 100px;"
     />
   {:else}
     <span
       class="text-content"
-      style="font-size: {textElement.fontSize}px; color: {textElement.color}; font-family: {textElement.fontFamily}; font-weight: {textElement.fontWeight}; text-align: {textElement.textAlign}; white-space: nowrap; cursor: {isDragging ? 'grabbing' : 'grab'};"
+      style="font-size: {textElement.fontSize}; color: {textElement.color}; font-family: {textElement.fontFamily}; font-weight: {textElement.fontWeight}; text-align: {textElement.textAlign}; white-space: nowrap; cursor: {isDragging ? 'grabbing' : 'grab'};"
     >
       {textElement.content}
     </span>

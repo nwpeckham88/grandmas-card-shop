@@ -111,24 +111,34 @@ export const cardState = writable(initialCardState);
 
 // History for undo/redo functionality
 const MAX_HISTORY = 20;
-export const cardHistory = writable({
+const cardHistory = writable({
   past: [],
-  present: null,
   future: []
 });
 
-// Initialize history with current state
-cardState.subscribe(state => {
-  cardHistory.update(history => {
-    if (history.present === null) {
+// Flag to prevent history loops
+let isTimeTraveling = false;
+
+// Centralized state update function
+function updateState(updater, trackHistory = true) {
+  if (isTimeTraveling) return;
+  
+  let currentState;
+  cardState.subscribe(s => currentState = s)();
+
+  if (trackHistory) {
+    cardHistory.update(history => {
+      // Use structuredClone for better performance than JSON.stringify
+      const newPast = [...history.past, structuredClone(currentState)].slice(-MAX_HISTORY);
       return {
         ...history,
-        present: JSON.parse(JSON.stringify(state))
+        past: newPast,
+        future: []
       };
-    }
-    return history;
-  });
-});
+    });
+  }
+  cardState.update(updater);
+}
 
 // Derived store for current side data
 export const currentSideData = derived(
@@ -145,88 +155,88 @@ export const insideSpreadData = derived(
   })
 );
 
-// Helper function to save state to history
-function saveToHistory() {
-  cardState.update(state => {
-    cardHistory.update(history => {
-      const newPast = [...history.past, history.present].slice(-MAX_HISTORY);
-      return {
-        past: newPast,
-        present: JSON.parse(JSON.stringify(state)),
-        future: []
-      };
-    });
-    return state;
-  });
-}
-
 // Undo/Redo functions
 export function undo() {
+  let pastStates;
+  cardHistory.subscribe(h => pastStates = h.past)();
+
+  if (pastStates.length === 0) return;
+
+  isTimeTraveling = true;
+  
+  let currentState;
+  cardState.subscribe(s => currentState = s)();
+  
   cardHistory.update(history => {
-    if (history.past.length === 0) return history;
+    const newPast = history.past.slice(0, history.past.length - 1);
+    const previousState = history.past[history.past.length - 1];
     
-    const previous = history.past[history.past.length - 1];
-    const newPast = history.past.slice(0, -1);
-    
-    cardState.set(previous);
+    cardState.set(previousState);
     
     return {
       past: newPast,
-      present: previous,
-      future: [history.present, ...history.future]
+      future: [structuredClone(currentState), ...history.future]
     };
   });
+
+  isTimeTraveling = false;
 }
 
 export function redo() {
+  let futureStates;
+  cardHistory.subscribe(h => futureStates = h.future)();
+
+  if (futureStates.length === 0) return;
+
+  isTimeTraveling = true;
+
+  let currentState;
+  cardState.subscribe(s => currentState = s)();
+
   cardHistory.update(history => {
-    if (history.future.length === 0) return history;
-    
-    const next = history.future[0];
+    const nextState = history.future[0];
     const newFuture = history.future.slice(1);
     
-    cardState.set(next);
+    cardState.set(nextState);
     
     return {
-      past: [...history.past, history.present],
-      present: next,
+      past: [...history.past, structuredClone(currentState)],
       future: newFuture
     };
   });
+  
+  isTimeTraveling = false;
 }
 
 // Helper functions for card management
 export function switchToSide(side) {
   if (!CARD_SIDES.includes(side)) return;
   
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     currentSide: side,
     selectedElements: [] // Clear selection when switching sides
-  }));
+  }), false); // Don't track history for side switching
 }
 
 export function setCardSize(sizeKey) {
   if (!CARD_SIZES[sizeKey]) return;
   
-  saveToHistory();
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     cardSize: CARD_SIZES[sizeKey]
   }));
 }
 
 export function setCustomCardSize(width, height) {
-  saveToHistory();
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     cardSize: { name: 'Custom', width, height }
   }));
 }
 
 export function setBackgroundColor(color, side = null) {
-  saveToHistory();
-  cardState.update(state => {
+  updateState(state => {
     const targetSide = side || state.currentSide;
     return {
       ...state,
@@ -240,24 +250,24 @@ export function setBackgroundColor(color, side = null) {
 
 // Grid and guide functions
 export function toggleSnapToGrid() {
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     snapToGrid: !state.snapToGrid
-  }));
+  }), false);
 }
 
 export function setGridSize(size) {
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     gridSize: size
-  }));
+  }), false);
 }
 
 export function toggleGuides() {
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     showGuides: !state.showGuides
-  }));
+  }), false);
 }
 
 // Helper function to snap coordinates to grid
@@ -268,7 +278,7 @@ function snapToGrid(value, gridSize, enabled) {
 
 // Selection functions
 export function selectElement(elementId, multiSelect = false) {
-  cardState.update(state => {
+  updateState(state => {
     let newSelection;
     
     if (multiSelect) {
@@ -287,18 +297,18 @@ export function selectElement(elementId, multiSelect = false) {
       ...state,
       selectedElements: newSelection
     };
-  });
+  }, false);
 }
 
 export function clearSelection() {
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     selectedElements: []
-  }));
+  }), false);
 }
 
 export function selectAllElements() {
-  cardState.update(state => {
+  updateState(state => {
     const currentSideData = state[state.currentSide];
     const allElements = Object.keys(currentSideData.elements || {});
     
@@ -306,12 +316,12 @@ export function selectAllElements() {
       ...state,
       selectedElements: allElements
     };
-  });
+  }, false);
 }
 
 // Copy/Paste functions
 export function copySelectedElements() {
-  cardState.update(state => {
+  updateState(state => {
     const currentSideData = state[state.currentSide];
     const elementsToCopy = [];
     
@@ -324,47 +334,58 @@ export function copySelectedElements() {
     
     return {
       ...state,
-      clipboard: elementsToCopy.length > 0 ? elementsToCopy : null
+      clipboard: elementsToCopy.length > 0 ? structuredClone(elementsToCopy) : null
     };
-  });
+  }, false);
 }
 
 export function pasteElements() {
-  cardState.update(state => {
+  updateState(state => {
     if (!state.clipboard) return state;
     
-    saveToHistory();
     const targetSide = state.currentSide;
-    const newState = { ...state };
-    
+    const newElementsOnSide = { ...state[targetSide].elements };
+    const newPastedIds = [];
+
     state.clipboard.forEach(element => {
+      const newId = generateId();
       const newElement = {
         ...element,
-        id: generateId(),
+        id: newId,
         x: element.x + 20, // Offset pasted elements
         y: element.y + 20
       };
-      
-      newState[targetSide].elements[newElement.id] = newElement;
+      newElementsOnSide[newId] = newElement;
+      newPastedIds.push(newId);
     });
     
-    return newState;
+    return {
+      ...state,
+      [targetSide]: {
+        ...state[targetSide],
+        elements: newElementsOnSide
+      },
+      selectedElements: newPastedIds // Select the new elements
+    };
   });
 }
 
 // Alignment functions
 export function alignElements(alignment) {
-  cardState.update(state => {
+  updateState(state => {
     if (state.selectedElements.length < 2) return state;
     
-    saveToHistory();
     const currentSideData = state[state.currentSide];
     const elements = [];
     
-    // Gather all selected elements
+    // Gather all selected elements and their dimensions
     state.selectedElements.forEach(elementId => {
       const element = currentSideData.elements[elementId];
       if (element) {
+        // TODO: For text elements, width/height are not stored.
+        // A full implementation would require getting rendered dimensions from the DOM,
+        // which can't be done here. This alignment will work perfectly for images/stickers,
+        // and align text elements by their top-left (x,y) coordinate.
         elements.push(element);
       }
     });
@@ -436,8 +457,7 @@ export function alignElements(alignment) {
 
 // Layer functions
 export function bringToFront(elementId) {
-  cardState.update(state => {
-    saveToHistory();
+  updateState(state => {
     const targetSide = state.currentSide;
     const element = state[targetSide].elements[elementId];
     
@@ -462,8 +482,7 @@ export function bringToFront(elementId) {
 }
 
 export function sendToBack(elementId) {
-  cardState.update(state => {
-    saveToHistory();
+  updateState(state => {
     const targetSide = state.currentSide;
     const element = state[targetSide].elements[elementId];
     
@@ -501,18 +520,17 @@ export function selectSticker(emoji) {
   
   const dataURL = canvas.toDataURL();
   
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     selectedSticker: { emoji, dataURL },
     placementMode: true
-  }));
+  }), false);
 }
 
 export function placeStickerAt(x, y, width = 80, height = 80, side = null) {
-  cardState.update(state => {
+  updateState(state => {
     if (!state.selectedSticker) return state;
     
-    saveToHistory();
     const targetSide = side || state.currentSide;
     
     // Snap to grid if enabled
@@ -548,18 +566,17 @@ export function placeStickerAt(x, y, width = 80, height = 80, side = null) {
 }
 
 export function cancelStickerPlacement() {
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     selectedSticker: null,
     placementMode: false
-  }));
+  }), false);
 }
 
 // Helper functions for managing elements (updated to work with all sides)
 export function addTextElement(content = 'Double-click to edit', side = null) {
   console.log('addTextElement function called with:', { content, side });
-  saveToHistory();
-  cardState.update(state => {
+  updateState(state => {
     console.log('Current state before update:', state);
     const targetSide = side || state.currentSide;
     console.log('Target side:', targetSide);
@@ -611,8 +628,7 @@ export function addGreetingPhrase(category) {
 }
 
 export function addImageElement(src, width = 200, height = 150, side = null) {
-  saveToHistory();
-  cardState.update(state => {
+  updateState(state => {
     const targetSide = side || state.currentSide;
     
     // Snap to grid if enabled
@@ -646,8 +662,7 @@ export function addImageElement(src, width = 200, height = 150, side = null) {
 }
 
 export function addStickerElement(src, width = 80, height = 80, side = null) {
-  saveToHistory();
-  cardState.update(state => {
+  updateState(state => {
     const targetSide = side || state.currentSide;
     
     // Snap to grid if enabled
@@ -680,7 +695,10 @@ export function addStickerElement(src, width = 80, height = 80, side = null) {
 }
 
 export function updateElement(elementId, updates, side = null) {
-  cardState.update(state => {
+  // This one is tricky for history, as it's called on drag.
+  // We'll let the mouseup/dragend event handle the history save.
+  // For now, we update without tracking.
+  updateState(state => {
     const targetSide = side || state.currentSide;
     const element = state[targetSide].elements[elementId];
     
@@ -704,12 +722,16 @@ export function updateElement(elementId, updates, side = null) {
         }
       }
     };
-  });
+  }, false);
+}
+
+// This function should be called after a drag/resize operation is complete.
+export function recordInteraction() {
+  updateState(state => state, true);
 }
 
 export function deleteElement(elementId, side = null) {
-  saveToHistory();
-  cardState.update(state => {
+  updateState(state => {
     const targetSide = side || state.currentSide;
     
     // Remove from selection if selected
@@ -730,10 +752,9 @@ export function deleteElement(elementId, side = null) {
 }
 
 export function deleteSelectedElements() {
-  cardState.update(state => {
+  updateState(state => {
     if (state.selectedElements.length === 0) return state;
     
-    saveToHistory();
     const targetSide = state.currentSide;
     const newElements = { ...state[targetSide].elements };
     
@@ -753,8 +774,7 @@ export function deleteSelectedElements() {
 }
 
 export function clearCard(side = null) {
-  saveToHistory();
-  cardState.update(state => {
+  updateState(state => {
     if (side && CARD_SIDES.includes(side)) {
       // Clear specific side
       return {
@@ -777,8 +797,7 @@ export function clearCard(side = null) {
 }
 
 export function duplicateToOtherSide(targetSide = null) {
-  saveToHistory();
-  cardState.update(state => {
+  updateState(state => {
     const currentSide = state.currentSide;
     let otherSide = targetSide;
     
@@ -812,8 +831,6 @@ export function duplicateToOtherSide(targetSide = null) {
 
 // Template functions for grandma
 export function applyTemplate(templateName) {
-  saveToHistory();
-  
   const templates = {
     birthday: {
       front: {
@@ -860,12 +877,10 @@ export function applyTemplate(templateName) {
   const template = templates[templateName];
   if (!template) return;
   
-  cardState.update(state => ({
+  updateState(state => ({
     ...state,
     selectedElements: [],
     ...template
   }));
 }
-
-export { generateId };
 
