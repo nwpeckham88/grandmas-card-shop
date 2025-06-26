@@ -4,50 +4,54 @@
   
   let { stickerElement } = $props();
   
+  let element = $state();
   let isDragging = $state(false);
   let isResizing = $state(false);
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let elementStartX = 0;
-  let elementStartY = 0;
-  let resizeStartWidth = 0;
-  let resizeStartHeight = 0;
+  let dragStart = $state({ x: 0, y: 0, elementX: 0, elementY: 0 });
+  let resizeStart = $state({ width: 0, height: 0, x: 0, y: 0 });
   
-  // Check if this element is selected
-  let isSelected = $derived($cardState.selectedElements.includes(`stickerElements:${stickerElement.id}`));
+  // Get selection state
+  let selectedElements = $derived($cardState.selectedElements);
+  let isSelected = $derived(selectedElements.includes(stickerElement.id));
   
   function handleMouseDown(event) {
-    if (event.target.classList.contains('resize-handle')) {
-      return; // Let resize handle its own mouse events
-    }
-    
-    // Handle multi-selection with Ctrl/Cmd key
     const multiSelect = event.ctrlKey || event.metaKey;
-    selectElement('stickerElements', stickerElement.id, multiSelect);
+    selectElement(stickerElement.id, multiSelect);
     
-    isDragging = true;
-    dragStartX = event.clientX;
-    dragStartY = event.clientY;
-    elementStartX = stickerElement.x;
-    elementStartY = stickerElement.y;
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    
-    event.preventDefault();
-    event.stopPropagation();
+    if (event.button === 0 && !event.target.classList.contains('resize-handle')) {
+      // Left click for dragging (not on resize handle)
+      isDragging = true;
+      dragStart = {
+        x: event.clientX,
+        y: event.clientY,
+        elementX: stickerElement.x,
+        elementY: stickerElement.y
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
   }
   
   function handleMouseMove(event) {
-    if (!isDragging) return;
-    
-    const deltaX = event.clientX - dragStartX;
-    const deltaY = event.clientY - dragStartY;
-    
-    const newX = Math.max(0, elementStartX + deltaX);
-    const newY = Math.max(0, elementStartY + deltaY);
-    
-    updateElement('stickerElements', stickerElement.id, { x: newX, y: newY });
+    if (isDragging) {
+      const deltaX = event.clientX - dragStart.x;
+      const deltaY = event.clientY - dragStart.y;
+      
+      const newX = Math.max(0, dragStart.elementX + deltaX);
+      const newY = Math.max(0, dragStart.elementY + deltaY);
+      
+      updateElement(stickerElement.id, { x: newX, y: newY });
+    } else if (isResizing) {
+      const deltaX = event.clientX - resizeStart.x;
+      const deltaY = event.clientY - resizeStart.y;
+      
+      const aspectRatio = resizeStart.width / resizeStart.height;
+      const newWidth = Math.max(20, resizeStart.width + deltaX);
+      const newHeight = Math.max(20, newWidth / aspectRatio);
+      
+      updateElement(stickerElement.id, { width: newWidth, height: newHeight });
+    }
   }
   
   function handleMouseUp() {
@@ -55,55 +59,35 @@
     isResizing = false;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
-    document.removeEventListener('mousemove', handleResizeMove);
-    document.removeEventListener('mouseup', handleResizeUp);
   }
   
   function handleResizeStart(event) {
-    isResizing = true;
-    dragStartX = event.clientX;
-    dragStartY = event.clientY;
-    resizeStartWidth = stickerElement.width;
-    resizeStartHeight = stickerElement.height;
-    
-    document.addEventListener('mousemove', handleResizeMove);
-    document.addEventListener('mouseup', handleResizeUp);
-    
     event.stopPropagation();
-    event.preventDefault();
-  }
-  
-  function handleResizeMove(event) {
-    if (!isResizing) return;
+    isResizing = true;
+    resizeStart = {
+      width: stickerElement.width,
+      height: stickerElement.height,
+      x: event.clientX,
+      y: event.clientY
+    };
     
-    const deltaX = event.clientX - dragStartX;
-    const deltaY = event.clientY - dragStartY;
-    
-    const newWidth = Math.max(20, resizeStartWidth + deltaX);
-    const newHeight = Math.max(20, resizeStartHeight + deltaY);
-    
-    updateElement('stickerElements', stickerElement.id, { width: newWidth, height: newHeight });
-  }
-  
-  function handleResizeUp() {
-    isResizing = false;
-    document.removeEventListener('mousemove', handleResizeMove);
-    document.removeEventListener('mouseup', handleResizeUp);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   }
   
   function handleClick(event) {
-    event.stopPropagation();
     const multiSelect = event.ctrlKey || event.metaKey;
-    selectElement('stickerElements', stickerElement.id, multiSelect);
+    selectElement(stickerElement.id, multiSelect);
   }
 </script>
 
 <div
+  bind:this={element}
   class="card-element draggable-element sticker-element"
   class:dragging={isDragging}
   class:resizing={isResizing}
   class:selected={isSelected}
-  style="left: {stickerElement.x}px; top: {stickerElement.y}px; width: {stickerElement.width}px; height: {stickerElement.height}px; z-index: {isDragging || isResizing ? 1000 : isSelected ? 100 : 1};"
+  style="left: {stickerElement.x}px; top: {stickerElement.y}px; width: {stickerElement.width}px; height: {stickerElement.height}px; z-index: {stickerElement.zIndex || 0};"
   onmousedown={handleMouseDown}
   onclick={handleClick}
   role="button"

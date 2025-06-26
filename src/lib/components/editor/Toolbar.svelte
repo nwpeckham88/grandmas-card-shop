@@ -311,16 +311,17 @@
       <!-- Alignment Tools -->
       <div class="flex gap-2 justify-center mb-4">
         <button class="btn btn-outline btn-sm" onclick={() => alignElements('left')}>↤ Left</button>
-        <button class="btn btn-outline btn-sm" onclick={() => alignElements('center')}>↕ Center</button>
+        <button class="btn btn-outline btn-sm" onclick={() => alignElements('center-horizontal')}>↕ Center H</button>
         <button class="btn btn-outline btn-sm" onclick={() => alignElements('right')}>↦ Right</button>
         <button class="btn btn-outline btn-sm" onclick={() => alignElements('top')}>↥ Top</button>
+        <button class="btn btn-outline btn-sm" onclick={() => alignElements('center-vertical')}>↕ Center V</button>
         <button class="btn btn-outline btn-sm" onclick={() => alignElements('bottom')}>↧ Bottom</button>
       </div>
 
       <!-- Layer Tools -->
       <div class="flex gap-2 justify-center">
-        <button class="btn btn-outline btn-sm" onclick={bringToFront}>↑ Front</button>
-        <button class="btn btn-outline btn-sm" onclick={sendToBack}>↓ Back</button>
+        <button class="btn btn-outline btn-sm" onclick={() => selectedElements.forEach(id => bringToFront(id))}>↑ Front</button>
+        <button class="btn btn-outline btn-sm" onclick={() => selectedElements.forEach(id => sendToBack(id))}>↓ Back</button>
       </div>
 
       <!-- Text Formatting (only for text elements) -->

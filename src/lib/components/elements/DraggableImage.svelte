@@ -4,50 +4,54 @@
   
   let { imageElement } = $props();
   
+  let element = $state();
   let isDragging = $state(false);
   let isResizing = $state(false);
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let elementStartX = 0;
-  let elementStartY = 0;
-  let resizeStartWidth = 0;
-  let resizeStartHeight = 0;
+  let dragStart = $state({ x: 0, y: 0, elementX: 0, elementY: 0 });
+  let resizeStart = $state({ width: 0, height: 0, x: 0, y: 0 });
   
-  // Check if this element is selected
-  let isSelected = $derived($cardState.selectedElements.includes(`imageElements:${imageElement.id}`));
+  // Get selection state
+  let selectedElements = $derived($cardState.selectedElements);
+  let isSelected = $derived(selectedElements.includes(imageElement.id));
   
   function handleMouseDown(event) {
-    if (event.target.classList.contains('resize-handle')) {
-      return; // Let resize handle its own mouse events
-    }
-    
-    // Handle multi-selection with Ctrl/Cmd key
     const multiSelect = event.ctrlKey || event.metaKey;
-    selectElement('imageElements', imageElement.id, multiSelect);
+    selectElement(imageElement.id, multiSelect);
     
-    isDragging = true;
-    dragStartX = event.clientX;
-    dragStartY = event.clientY;
-    elementStartX = imageElement.x;
-    elementStartY = imageElement.y;
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    
-    event.preventDefault();
-    event.stopPropagation();
+    if (event.button === 0 && !event.target.classList.contains('resize-handle')) {
+      // Left click for dragging (not on resize handle)
+      isDragging = true;
+      dragStart = {
+        x: event.clientX,
+        y: event.clientY,
+        elementX: imageElement.x,
+        elementY: imageElement.y
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
   }
   
   function handleMouseMove(event) {
-    if (!isDragging) return;
-    
-    const deltaX = event.clientX - dragStartX;
-    const deltaY = event.clientY - dragStartY;
-    
-    const newX = Math.max(0, elementStartX + deltaX);
-    const newY = Math.max(0, elementStartY + deltaY);
-    
-    updateElement('imageElements', imageElement.id, { x: newX, y: newY });
+    if (isDragging) {
+      const deltaX = event.clientX - dragStart.x;
+      const deltaY = event.clientY - dragStart.y;
+      
+      const newX = Math.max(0, dragStart.elementX + deltaX);
+      const newY = Math.max(0, dragStart.elementY + deltaY);
+      
+      updateElement(imageElement.id, { x: newX, y: newY });
+    } else if (isResizing) {
+      const deltaX = event.clientX - resizeStart.x;
+      const deltaY = event.clientY - resizeStart.y;
+      
+      const aspectRatio = resizeStart.width / resizeStart.height;
+      const newWidth = Math.max(20, resizeStart.width + deltaX);
+      const newHeight = Math.max(20, newWidth / aspectRatio);
+      
+      updateElement(imageElement.id, { width: newWidth, height: newHeight });
+    }
   }
   
   function handleMouseUp() {
@@ -55,50 +59,30 @@
     isResizing = false;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
-    document.removeEventListener('mousemove', handleResizeMove);
-    document.removeEventListener('mouseup', handleResizeUp);
   }
   
   function handleResizeStart(event) {
-    isResizing = true;
-    dragStartX = event.clientX;
-    dragStartY = event.clientY;
-    resizeStartWidth = imageElement.width;
-    resizeStartHeight = imageElement.height;
-    
-    document.addEventListener('mousemove', handleResizeMove);
-    document.addEventListener('mouseup', handleResizeUp);
-    
     event.stopPropagation();
-    event.preventDefault();
-  }
-  
-  function handleResizeMove(event) {
-    if (!isResizing) return;
+    isResizing = true;
+    resizeStart = {
+      width: imageElement.width,
+      height: imageElement.height,
+      x: event.clientX,
+      y: event.clientY
+    };
     
-    const deltaX = event.clientX - dragStartX;
-    const deltaY = event.clientY - dragStartY;
-    
-    const newWidth = Math.max(50, resizeStartWidth + deltaX);
-    const newHeight = Math.max(50, resizeStartHeight + deltaY);
-    
-    updateElement('imageElements', imageElement.id, { width: newWidth, height: newHeight });
-  }
-  
-  function handleResizeUp() {
-    isResizing = false;
-    document.removeEventListener('mousemove', handleResizeMove);
-    document.removeEventListener('mouseup', handleResizeUp);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   }
   
   function handleClick(event) {
-    event.stopPropagation();
     const multiSelect = event.ctrlKey || event.metaKey;
-    selectElement('imageElements', imageElement.id, multiSelect);
+    selectElement(imageElement.id, multiSelect);
   }
 </script>
 
 <div
+  bind:this={element}
   class="card-element draggable-element image-element"
   class:dragging={isDragging}
   class:resizing={isResizing}

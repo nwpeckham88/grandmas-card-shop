@@ -4,46 +4,45 @@
   
   let { textElement } = $props();
   
-  let isDragging = $state(false);
   let isEditing = $state(false);
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let elementStartX = 0;
-  let elementStartY = 0;
-  let textInput = $state();
+  let element = $state();
+  let isDragging = $state(false);
+  let dragStart = $state({ x: 0, y: 0, elementX: 0, elementY: 0 });
   
-  // Check if this element is selected
-  let isSelected = $derived($cardState.selectedElements.includes(`textElements:${textElement.id}`));
+  // Get selection state
+  let selectedElements = $derived($cardState.selectedElements);
+  let isSelected = $derived(selectedElements.includes(textElement.id));
   
   function handleMouseDown(event) {
-    // Handle multi-selection with Ctrl/Cmd key
+    if (isEditing) return;
+    
     const multiSelect = event.ctrlKey || event.metaKey;
-    selectElement('textElements', textElement.id, multiSelect);
+    selectElement(textElement.id, multiSelect);
     
-    isDragging = true;
-    dragStartX = event.clientX;
-    dragStartY = event.clientY;
-    elementStartX = textElement.x;
-    elementStartY = textElement.y;
-    
-    // Add global mouse move and up listeners
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    
-    event.preventDefault();
-    event.stopPropagation();
+    if (event.button === 0) { // Left click for dragging
+      isDragging = true;
+      dragStart = {
+        x: event.clientX,
+        y: event.clientY,
+        elementX: textElement.x,
+        elementY: textElement.y
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
   }
   
   function handleMouseMove(event) {
     if (!isDragging) return;
     
-    const deltaX = event.clientX - dragStartX;
-    const deltaY = event.clientY - dragStartY;
+    const deltaX = event.clientX - dragStart.x;
+    const deltaY = event.clientY - dragStart.y;
     
-    const newX = Math.max(0, elementStartX + deltaX);
-    const newY = Math.max(0, elementStartY + deltaY);
+    const newX = Math.max(0, dragStart.elementX + deltaX);
+    const newY = Math.max(0, dragStart.elementY + deltaY);
     
-    updateElement('textElements', textElement.id, { x: newX, y: newY });
+    updateElement(textElement.id, { x: newX, y: newY });
   }
   
   function handleMouseUp() {
@@ -52,50 +51,35 @@
     document.removeEventListener('mouseup', handleMouseUp);
   }
   
-  function handleDoubleClick(event) {
-    event.stopPropagation();
+  function handleDoubleClick() {
     isEditing = true;
-    setTimeout(() => {
-      if (textInput) {
-        textInput.focus();
-        textInput.select();
-      }
-    }, 0);
   }
   
-  function handleInputBlur() {
+  function handleBlur(event) {
     isEditing = false;
   }
   
   function handleKeyDown(event) {
-    if (isEditing) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        isEditing = false;
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        isEditing = false;
-        // Restore original content if needed
-      }
-      // Don't propagate keyboard events while editing
-      event.stopPropagation();
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      isEditing = false;
+    } else if (event.key === 'Escape') {
+      isEditing = false;
     }
   }
   
   function handleInput(event) {
-    updateElement('textElements', textElement.id, { content: event.target.value });
+    updateElement(textElement.id, { content: event.target.value });
   }
   
   function handleClick(event) {
-    if (!isEditing) {
-      event.stopPropagation();
-      const multiSelect = event.ctrlKey || event.metaKey;
-      selectElement('textElements', textElement.id, multiSelect);
-    }
+    const multiSelect = event.ctrlKey || event.metaKey;
+    selectElement(textElement.id, multiSelect);
   }
 </script>
 
 <div
+  bind:this={element}
   class="card-element draggable-element text-element"
   class:dragging={isDragging}
   class:selected={isSelected}
@@ -109,12 +93,11 @@
 >
   {#if isEditing}
     <input
-      bind:this={textInput}
       type="text"
       value={textElement.content}
-      onblur={handleInputBlur}
-      onkeydown={handleKeyDown}
       oninput={handleInput}
+      onblur={handleBlur}
+      onkeydown={handleKeyDown}
       class="text-input bg-transparent border-none outline-none resize-none"
       style="font-size: {textElement.fontSize}px; color: {textElement.color}; font-family: {textElement.fontFamily}; font-weight: {textElement.fontWeight}; text-align: {textElement.textAlign}; min-width: 100px;"
     />

@@ -71,9 +71,7 @@ export const TEXT_ALIGNMENTS = [
 // Initial empty side structure
 const createEmptySide = () => ({
   backgroundColor: '#FFFFFF',
-  textElements: [],  // Example: { id: '...', content: 'Hello!', x: 50, y: 50, fontSize: 24, color: '#000', fontFamily: 'Arial' }
-  imageElements: [], // Example: { id: '...', src: '...', x: 150, y: 100, width: 200, height: 150, scale: 1 }
-  stickerElements: [] // Example: { id: '...', src: '...', x: 200, y: 200, width: 80, height: 80 }
+  elements: {}
 });
 
 // Valid card sides
@@ -267,7 +265,7 @@ export function toggleSnapToGrid() {
 export function setGridSize(size) {
   cardState.update(state => ({
     ...state,
-    gridSize: Math.max(5, Math.min(50, size))
+    gridSize: size
   }));
 }
 
@@ -285,19 +283,20 @@ function snapToGrid(value, gridSize, enabled) {
 }
 
 // Selection functions
-export function selectElement(elementType, elementId, multiSelect = false) {
+export function selectElement(elementId, multiSelect = false) {
   cardState.update(state => {
-    const elementKey = `${elementType}:${elementId}`;
     let newSelection;
     
     if (multiSelect) {
-      if (state.selectedElements.includes(elementKey)) {
-        newSelection = state.selectedElements.filter(id => id !== elementKey);
+      // Toggle element in selection
+      if (state.selectedElements.includes(elementId)) {
+        newSelection = state.selectedElements.filter(id => id !== elementId);
       } else {
-        newSelection = [...state.selectedElements, elementKey];
+        newSelection = [...state.selectedElements, elementId];
       }
     } else {
-      newSelection = [elementKey];
+      // Single selection
+      newSelection = [elementId];
     }
     
     return {
@@ -317,12 +316,7 @@ export function clearSelection() {
 export function selectAllElements() {
   cardState.update(state => {
     const currentSideData = state[state.currentSide];
-    const allElements = [];
-    
-    // Add all elements from current side
-    currentSideData.textElements.forEach(el => allElements.push(`textElements:${el.id}`));
-    currentSideData.imageElements.forEach(el => allElements.push(`imageElements:${el.id}`));
-    currentSideData.stickerElements.forEach(el => allElements.push(`stickerElements:${el.id}`));
+    const allElements = Object.keys(currentSideData.elements || {});
     
     return {
       ...state,
@@ -337,11 +331,10 @@ export function copySelectedElements() {
     const currentSideData = state[state.currentSide];
     const elementsToCopy = [];
     
-    state.selectedElements.forEach(elementKey => {
-      const [elementType, elementId] = elementKey.split(':');
-      const element = currentSideData[elementType]?.find(el => el.id === elementId);
+    state.selectedElements.forEach(elementId => {
+      const element = currentSideData.elements[elementId];
       if (element) {
-        elementsToCopy.push({ type: elementType.replace('Elements', ''), element });
+        elementsToCopy.push(element);
       }
     });
     
@@ -360,7 +353,7 @@ export function pasteElements() {
     const targetSide = state.currentSide;
     const newState = { ...state };
     
-    state.clipboard.forEach(({ type, element }) => {
+    state.clipboard.forEach(element => {
       const newElement = {
         ...element,
         id: generateId(),
@@ -368,8 +361,7 @@ export function pasteElements() {
         y: element.y + 20
       };
       
-      const elementType = type + 'Elements';
-      newState[targetSide][elementType] = [...newState[targetSide][elementType], newElement];
+      newState[targetSide].elements[newElement.id] = newElement;
     });
     
     return newState;
@@ -386,11 +378,10 @@ export function alignElements(alignment) {
     const elements = [];
     
     // Gather all selected elements
-    state.selectedElements.forEach(elementKey => {
-      const [elementType, elementId] = elementKey.split(':');
-      const element = currentSideData[elementType]?.find(el => el.id === elementId);
+    state.selectedElements.forEach(elementId => {
+      const element = currentSideData.elements[elementId];
       if (element) {
-        elements.push({ type: elementType, element });
+        elements.push(element);
       }
     });
     
@@ -400,60 +391,59 @@ export function alignElements(alignment) {
     let alignValue;
     switch (alignment) {
       case 'left':
-        alignValue = Math.min(...elements.map(({ element }) => element.x));
+        alignValue = Math.min(...elements.map(element => element.x));
         break;
       case 'right':
-        alignValue = Math.max(...elements.map(({ element }) => element.x + (element.width || 0)));
+        alignValue = Math.max(...elements.map(element => element.x + (element.width || 0)));
         break;
       case 'top':
-        alignValue = Math.min(...elements.map(({ element }) => element.y));
+        alignValue = Math.min(...elements.map(element => element.y));
         break;
       case 'bottom':
-        alignValue = Math.max(...elements.map(({ element }) => element.y + (element.height || 0)));
+        alignValue = Math.max(...elements.map(element => element.y + (element.height || 0)));
         break;
       case 'center-horizontal':
-        const centerX = elements.reduce((sum, { element }) => sum + element.x + (element.width || 0) / 2, 0) / elements.length;
+        const centerX = elements.reduce((sum, element) => sum + element.x + (element.width || 0) / 2, 0) / elements.length;
         alignValue = centerX;
         break;
       case 'center-vertical':
-        const centerY = elements.reduce((sum, { element }) => sum + element.y + (element.height || 0) / 2, 0) / elements.length;
+        const centerY = elements.reduce((sum, element) => sum + element.y + (element.height || 0) / 2, 0) / elements.length;
         alignValue = centerY;
         break;
     }
     
     // Apply alignment
     const newState = { ...state };
-    elements.forEach(({ type, element }) => {
-      const elementArray = newState[state.currentSide][type];
-      const elementIndex = elementArray.findIndex(el => el.id === element.id);
+    elements.forEach(element => {
+      let newX = element.x;
+      let newY = element.y;
       
-      if (elementIndex !== -1) {
-        let newX = element.x;
-        let newY = element.y;
-        
-        switch (alignment) {
-          case 'left':
-            newX = alignValue;
-            break;
-          case 'right':
-            newX = alignValue - (element.width || 0);
-            break;
-          case 'top':
-            newY = alignValue;
-            break;
-          case 'bottom':
-            newY = alignValue - (element.height || 0);
-            break;
-          case 'center-horizontal':
-            newX = alignValue - (element.width || 0) / 2;
-            break;
-          case 'center-vertical':
-            newY = alignValue - (element.height || 0) / 2;
-            break;
-        }
-        
-        elementArray[elementIndex] = { ...element, x: newX, y: newY };
+      switch (alignment) {
+        case 'left':
+          newX = alignValue;
+          break;
+        case 'right':
+          newX = alignValue - (element.width || 0);
+          break;
+        case 'top':
+          newY = alignValue;
+          break;
+        case 'bottom':
+          newY = alignValue - (element.height || 0);
+          break;
+        case 'center-horizontal':
+          newX = alignValue - (element.width || 0) / 2;
+          break;
+        case 'center-vertical':
+          newY = alignValue - (element.height || 0) / 2;
+          break;
       }
+      
+      newState[state.currentSide].elements[element.id] = { 
+        ...element, 
+        x: newX, 
+        y: newY 
+      };
     });
     
     return newState;
@@ -461,22 +451,24 @@ export function alignElements(alignment) {
 }
 
 // Layer functions
-export function bringToFront(elementType, elementId) {
+export function bringToFront(elementId) {
   cardState.update(state => {
     saveToHistory();
     const targetSide = state.currentSide;
-    const elements = [...state[targetSide][elementType]];
-    const elementIndex = elements.findIndex(el => el.id === elementId);
+    const element = state[targetSide].elements[elementId];
     
-    if (elementIndex !== -1) {
-      const element = elements.splice(elementIndex, 1)[0];
-      elements.push(element);
+    if (element) {
+      const allElements = Object.values(state[targetSide].elements);
+      const maxZIndex = Math.max(...allElements.map(el => el.zIndex || 0));
       
       return {
         ...state,
         [targetSide]: {
           ...state[targetSide],
-          [elementType]: elements
+          elements: {
+            ...state[targetSide].elements,
+            [elementId]: { ...element, zIndex: maxZIndex + 1 }
+          }
         }
       };
     }
@@ -485,22 +477,24 @@ export function bringToFront(elementType, elementId) {
   });
 }
 
-export function sendToBack(elementType, elementId) {
+export function sendToBack(elementId) {
   cardState.update(state => {
     saveToHistory();
     const targetSide = state.currentSide;
-    const elements = [...state[targetSide][elementType]];
-    const elementIndex = elements.findIndex(el => el.id === elementId);
+    const element = state[targetSide].elements[elementId];
     
-    if (elementIndex !== -1) {
-      const element = elements.splice(elementIndex, 1)[0];
-      elements.unshift(element);
+    if (element) {
+      const allElements = Object.values(state[targetSide].elements);
+      const minZIndex = Math.min(...allElements.map(el => el.zIndex || 0));
       
       return {
         ...state,
         [targetSide]: {
           ...state[targetSide],
-          [elementType]: elements
+          elements: {
+            ...state[targetSide].elements,
+            [elementId]: { ...element, zIndex: minZIndex - 1 }
+          }
         }
       };
     }
@@ -543,20 +537,25 @@ export function placeStickerAt(x, y, width = 80, height = 80, side = null) {
     
     const newSticker = {
       id: generateId(),
+      type: 'sticker',
       src: state.selectedSticker.dataURL,
       x: snappedX,
       y: snappedY,
       width,
       height,
       rotation: 0,
-      emoji: state.selectedSticker.emoji
+      emoji: state.selectedSticker.emoji,
+      zIndex: 0
     };
     
     return {
       ...state,
       [targetSide]: {
         ...state[targetSide],
-        stickerElements: [...state[targetSide].stickerElements, newSticker]
+        elements: {
+          ...state[targetSide].elements,
+          [newSticker.id]: newSticker
+        }
       },
       selectedSticker: null,
       placementMode: false
@@ -582,21 +581,28 @@ export function addTextElement(content = 'Double-click to edit', side = null) {
     const snappedX = snapToGrid(100, state.gridSize, state.snapToGrid);
     const snappedY = snapToGrid(100, state.gridSize, state.snapToGrid);
     
+    const newElement = {
+      id: generateId(),
+      type: 'text',
+      content,
+      x: snappedX,
+      y: snappedY,
+      fontSize: 24,
+      color: '#000000',
+      fontFamily: 'Arial, sans-serif',
+      fontWeight: 'normal',
+      textAlign: 'left',
+      zIndex: 0
+    };
+    
     return {
       ...state,
       [targetSide]: {
         ...state[targetSide],
-        textElements: [...state[targetSide].textElements, {
-          id: generateId(),
-          content,
-          x: snappedX,
-          y: snappedY,
-          fontSize: 24,
-          color: '#000000',
-          fontFamily: 'Arial, sans-serif',
-          fontWeight: 'normal',
-          textAlign: 'left'
-        }]
+        elements: {
+          ...state[targetSide].elements,
+          [newElement.id]: newElement
+        }
       }
     };
   });
@@ -619,20 +625,27 @@ export function addImageElement(src, width = 200, height = 150, side = null) {
     const snappedX = snapToGrid(150, state.gridSize, state.snapToGrid);
     const snappedY = snapToGrid(100, state.gridSize, state.snapToGrid);
     
+    const newElement = {
+      id: generateId(),
+      type: 'image',
+      src,
+      x: snappedX,
+      y: snappedY,
+      width,
+      height,
+      scale: 1,
+      rotation: 0,
+      zIndex: 0
+    };
+    
     return {
       ...state,
       [targetSide]: {
         ...state[targetSide],
-        imageElements: [...state[targetSide].imageElements, {
-          id: generateId(),
-          src,
-          x: snappedX,
-          y: snappedY,
-          width,
-          height,
-          scale: 1,
-          rotation: 0
-        }]
+        elements: {
+          ...state[targetSide].elements,
+          [newElement.id]: newElement
+        }
       }
     };
   });
@@ -647,27 +660,37 @@ export function addStickerElement(src, width = 80, height = 80, side = null) {
     const snappedX = snapToGrid(200, state.gridSize, state.snapToGrid);
     const snappedY = snapToGrid(200, state.gridSize, state.snapToGrid);
     
+    const newElement = {
+      id: generateId(),
+      type: 'sticker',
+      src,
+      x: snappedX,
+      y: snappedY,
+      width,
+      height,
+      rotation: 0,
+      zIndex: 0
+    };
+    
     return {
       ...state,
       [targetSide]: {
         ...state[targetSide],
-        stickerElements: [...state[targetSide].stickerElements, {
-          id: generateId(),
-          src,
-          x: snappedX,
-          y: snappedY,
-          width,
-          height,
-          rotation: 0
-        }]
+        elements: {
+          ...state[targetSide].elements,
+          [newElement.id]: newElement
+        }
       }
     };
   });
 }
 
-export function updateElement(elementType, elementId, updates, side = null) {
+export function updateElement(elementId, updates, side = null) {
   cardState.update(state => {
     const targetSide = side || state.currentSide;
+    const element = state[targetSide].elements[elementId];
+    
+    if (!element) return state;
     
     // Apply grid snapping to position updates
     if (updates.x !== undefined && state.snapToGrid) {
@@ -681,29 +704,32 @@ export function updateElement(elementType, elementId, updates, side = null) {
       ...state,
       [targetSide]: {
         ...state[targetSide],
-        [elementType]: state[targetSide][elementType].map(element => 
-          element.id === elementId ? { ...element, ...updates } : element
-        )
+        elements: {
+          ...state[targetSide].elements,
+          [elementId]: { ...element, ...updates }
+        }
       }
     };
   });
 }
 
-export function deleteElement(elementType, elementId, side = null) {
+export function deleteElement(elementId, side = null) {
   saveToHistory();
   cardState.update(state => {
     const targetSide = side || state.currentSide;
     
     // Remove from selection if selected
-    const elementKey = `${elementType}:${elementId}`;
-    const newSelectedElements = state.selectedElements.filter(id => id !== elementKey);
+    const newSelectedElements = state.selectedElements.filter(id => id !== elementId);
+    
+    const newElements = { ...state[targetSide].elements };
+    delete newElements[elementId];
     
     return {
       ...state,
       selectedElements: newSelectedElements,
       [targetSide]: {
         ...state[targetSide],
-        [elementType]: state[targetSide][elementType].filter(element => element.id !== elementId)
+        elements: newElements
       }
     };
   });
@@ -715,18 +741,19 @@ export function deleteSelectedElements() {
     
     saveToHistory();
     const targetSide = state.currentSide;
-    const newState = { ...state };
+    const newElements = { ...state[targetSide].elements };
     
-    state.selectedElements.forEach(elementKey => {
-      const [elementType, elementId] = elementKey.split(':');
-      newState[targetSide][elementType] = newState[targetSide][elementType].filter(
-        element => element.id !== elementId
-      );
+    state.selectedElements.forEach(elementId => {
+      delete newElements[elementId];
     });
     
     return {
-      ...newState,
-      selectedElements: []
+      ...state,
+      selectedElements: [],
+      [targetSide]: {
+        ...state[targetSide],
+        elements: newElements
+      }
     };
   });
 }
@@ -771,11 +798,15 @@ export function duplicateToOtherSide(targetSide = null) {
     }
     
     // Deep copy current side to other side with new IDs
+    const duplicatedElements = {};
+    Object.values(state[currentSide].elements).forEach(element => {
+      const newId = generateId();
+      duplicatedElements[newId] = { ...element, id: newId };
+    });
+    
     const duplicatedSide = {
       backgroundColor: state[currentSide].backgroundColor,
-      textElements: state[currentSide].textElements.map(el => ({ ...el, id: generateId() })),
-      imageElements: state[currentSide].imageElements.map(el => ({ ...el, id: generateId() })),
-      stickerElements: state[currentSide].stickerElements.map(el => ({ ...el, id: generateId() }))
+      elements: duplicatedElements
     };
     
     return {
@@ -793,21 +824,41 @@ export function applyTemplate(templateName) {
     birthday: {
       front: {
         backgroundColor: '#FFE4E6',
-        textElements: [
-          { id: generateId(), content: 'Happy Birthday!', x: 200, y: 100, fontSize: 36, color: '#DC2626', fontFamily: 'serif', fontWeight: 'bold', textAlign: 'center' }
-        ],
-        imageElements: [],
-        stickerElements: []
+        elements: {
+          [generateId()]: {
+            id: generateId(),
+            type: 'text',
+            content: 'Happy Birthday!',
+            x: 200,
+            y: 100,
+            fontSize: 36,
+            color: '#DC2626',
+            fontFamily: 'serif',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            zIndex: 0
+          }
+        }
       }
     },
     thankyou: {
       front: {
         backgroundColor: '#F0F9FF',
-        textElements: [
-          { id: generateId(), content: 'Thank You!', x: 200, y: 150, fontSize: 32, color: '#1E40AF', fontFamily: 'serif', fontWeight: 'bold', textAlign: 'center' }
-        ],
-        imageElements: [],
-        stickerElements: []
+        elements: {
+          [generateId()]: {
+            id: generateId(),
+            type: 'text',
+            content: 'Thank You!',
+            x: 200,
+            y: 150,
+            fontSize: 32,
+            color: '#1E40AF',
+            fontFamily: 'serif',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            zIndex: 0
+          }
+        }
       }
     }
   };

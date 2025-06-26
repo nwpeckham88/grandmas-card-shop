@@ -17,6 +17,22 @@
   let selectedSticker = $derived($cardState.selectedSticker);
   let placementMode = $derived($cardState.placementMode);
   
+  // Convert elements object to arrays based on element type
+  let textElements = $derived(() => {
+    if (!sideData?.elements) return [];
+    return Object.values(sideData.elements).filter(el => el.type === 'text');
+  });
+  
+  let imageElements = $derived(() => {
+    if (!sideData?.elements) return [];
+    return Object.values(sideData.elements).filter(el => el.type === 'image');
+  });
+  
+  let stickerElements = $derived(() => {
+    if (!sideData?.elements) return [];
+    return Object.values(sideData.elements).filter(el => el.type === 'sticker');
+  });
+  
   // Get side display information
   function getSideDisplayName(side) {
     const names = {
@@ -45,6 +61,22 @@
   let companionSide = $derived(currentSide === 'inside-left' ? 'inside-right' : 
                     currentSide === 'inside-right' ? 'inside-left' : null);
   let companionData = $derived(companionSide ? $cardState[companionSide] : null);
+  
+  // Convert companion elements to arrays
+  let companionTextElements = $derived(() => {
+    if (!companionData?.elements) return [];
+    return Object.values(companionData.elements).filter(el => el.type === 'text');
+  });
+  
+  let companionImageElements = $derived(() => {
+    if (!companionData?.elements) return [];
+    return Object.values(companionData.elements).filter(el => el.type === 'image');
+  });
+  
+  let companionStickerElements = $derived(() => {
+    if (!companionData?.elements) return [];
+    return Object.values(companionData.elements).filter(el => el.type === 'sticker');
+  });
   
   export function getCanvasElement() {
     return canvasElement;
@@ -160,17 +192,17 @@
       style="width: {cardSize.width}px; left: {currentSide === 'inside-right' && isInsideSpread ? cardSize.width + 'px' : '0px'};"
     >
       <!-- Text elements -->
-      {#each sideData.textElements as textElement (textElement.id)}
+      {#each textElements as textElement (textElement.id)}
         <DraggableText textElement={textElement} />
       {/each}
       
       <!-- Image elements -->
-      {#each sideData.imageElements as imageElement (imageElement.id)}
+      {#each imageElements as imageElement (imageElement.id)}
         <DraggableImage imageElement={imageElement} />
       {/each}
       
       <!-- Sticker elements -->
-      {#each sideData.stickerElements as stickerElement (stickerElement.id)}
+      {#each stickerElements as stickerElement (stickerElement.id)}
         <DraggableSticker stickerElement={stickerElement} />
       {/each}
     </div>
@@ -182,7 +214,7 @@
         style="width: {cardSize.width}px; left: {currentSide === 'inside-left' ? cardSize.width + 'px' : '0px'};"
       >
         <!-- Companion Text Elements -->
-        {#each companionData.textElements as textElement (textElement.id)}
+        {#each companionTextElements as textElement (textElement.id)}
           <div 
             class="absolute select-none text-gray-600"
             style="
@@ -200,7 +232,7 @@
         {/each}
 
         <!-- Companion Image Elements -->
-        {#each companionData.imageElements as imageElement (imageElement.id)}
+        {#each companionImageElements as imageElement (imageElement.id)}
           <div 
             class="absolute border border-dashed border-gray-400"
             style="
@@ -220,7 +252,7 @@
         {/each}
 
         <!-- Companion Sticker Elements -->
-        {#each companionData.stickerElements as stickerElement (stickerElement.id)}
+        {#each companionStickerElements as stickerElement (stickerElement.id)}
           <div 
             class="absolute opacity-70"
             style="
@@ -257,7 +289,7 @@
     {/if}
     
     <!-- Empty state message -->
-    {#if sideData.textElements.length === 0 && sideData.imageElements.length === 0 && sideData.stickerElements.length === 0}
+    {#if textElements.length === 0 && imageElements.length === 0 && stickerElements.length === 0}
       <div class="absolute inset-0 flex items-center justify-center text-gray-400 pointer-events-none">
         <div class="text-center">
           <div class="text-6xl mb-4">
